@@ -7,15 +7,14 @@
     <meta name="description" content="Consigue la pieza: supera tres minijuegos seguidos." />
     <title>Consigue la pieza · Minijuego de mesa</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main id="app" aria-live="polite"></main>
-    <script src="game.js?v=20260903-5"></script>
+    <script src="game.js?v=20260903-6"></script>
     <script>
-      // El pato se mueve casi instantáneamente después de cada toque.
       const originalStart = window.start;
       window.start = function(){
         const nativeSetInterval = window.setInterval;
@@ -24,13 +23,13 @@
         };
         try {
           if(window.S && S.g && S.g.id === 16) S.g.time = 3;
+          if(window.S && S.g && S.g.id === 14) S.g.time = 13;
           originalStart();
         } finally {
           window.setInterval = nativeSetInterval;
         }
       };
 
-      // Cuenta atrás independiente del temporizador del minijuego.
       window.countdown = function(){
         stop();
         S.over = true;
@@ -52,7 +51,6 @@
         step();
       };
 
-      // ORDEN DEL 1 AL 8: números desordenados, hay que pulsarlos en orden.
       const originalMount = window.mount;
       window.mount = function(id, area){
         if(id === 7){
@@ -63,67 +61,55 @@
             const b = e.target.closest('button');
             if(!b || S.over) return;
             const n = +b.dataset.n;
-            if(n !== next){
-              b.style.background='#ef5264';
-              b.style.color='#fff';
-              tone('lose');
-              return finish(false,'¡Te has equivocado de número!');
-            }
-            b.style.background='#3bc68c';
-            b.style.color='#fff';
-            b.disabled=true;
-            tone('good');
+            if(n !== next){ b.style.background='#ef5264'; b.style.color='#fff'; tone('lose'); return finish(false,'¡Te has equivocado de número!'); }
+            b.style.background='#3bc68c'; b.style.color='#fff'; b.disabled=true; tone('good');
             next++;
             if(next===9) finish(true,'¡Has hecho el 1 al 8 perfecto!');
           };
           return;
         }
 
-        // MEMORIA MUSICAL: 9 cubos. La máquina enseña la secuencia
-        // iluminando cada cubo y haciendo sonar una nota distinta.
         if(id === 13){
           const notes = [261.63,293.66,329.63,349.23,392,440,493.88,523.25,587.33];
           const seq = Array.from({length:6},()=>Math.floor(Math.random()*9));
-          let showing = true;
-          let playPos = 0;
-          let answerPos = 0;
-
+          let showing = true, playPos = 0, answerPos = 0;
           area.innerHTML = `<div style="width:100%"><p class="k">MEMORIA MUSICAL</p><p id="memoryHint">Mira y escucha la secuencia.</p><div class="seq">${Array.from({length:9},(_,i)=>`<button data-i="${i}"></button>`).join('')}</div></div>`;
-
           const showNext = () => {
             if(S.over) return;
-            if(playPos >= seq.length){
-              showing=false;
-              $('#memoryHint').textContent='¡Ahora repítela en el mismo orden!';
-              return;
-            }
-            const i=seq[playPos++];
-            const b=area.querySelector(`button[data-i="${i}"]`);
+            if(playPos >= seq.length){ showing=false; $('#memoryHint').textContent='¡Ahora repítela en el mismo orden!'; return; }
+            const i=seq[playPos++], b=area.querySelector(`button[data-i="${i}"]`);
             if(!b) return;
-            b.classList.add('flash');
-            toneNote(notes[i]);
+            b.classList.add('flash'); toneNote(notes[i]);
             setTimeout(()=>b.classList.remove('flash'),420);
             setTimeout(showNext,650);
           };
           showNext();
-
           area.onclick=e=>{
             if(showing || S.over) return;
-            const b=e.target.closest('button');
-            if(!b) return;
+            const b=e.target.closest('button'); if(!b) return;
             const i=+b.dataset.i;
-            if(i!==seq[answerPos]){
-              b.style.background='#ef5264';
-              b.style.color='#fff';
-              tone('lose');
-              return finish(false,'¡Secuencia incorrecta!');
-            }
-            b.style.background='#3bc68c';
-            b.style.color='#fff';
-            b.disabled=true;
-            toneNote(notes[i]);
+            if(i!==seq[answerPos]){ b.style.background='#ef5264'; b.style.color='#fff'; tone('lose'); return finish(false,'¡Secuencia incorrecta!'); }
+            b.style.background='#3bc68c'; b.style.color='#fff'; b.disabled=true; toneNote(notes[i]);
             answerPos++;
-            if(answerPos===seq.length) finish(true,'¡Memoria musical perfecta!');
+            if(answerPos===seq.length) finish(true,'¡Secuencia musical perfecta!');
+          };
+          return;
+        }
+
+        // NÚMERO FANTASMA: encuentra el número que aparece una sola vez.
+        if(id === 14){
+          const normal = Math.floor(Math.random()*9)+1;
+          let ghost = Math.floor(Math.random()*9)+1;
+          while(ghost===normal) ghost=Math.floor(Math.random()*9)+1;
+          const total=36, pos=Math.floor(Math.random()*total);
+          const values=Array.from({length:total},(_,i)=>i===pos?ghost:normal);
+          const choices=[1,2,3,4,5,6,7,8,9];
+          area.innerHTML = `<div style="width:100%"><p class="k">ENCUENTRA EL NÚMERO FANTASMA</p><p>Hay un número diferente. Tócalo abajo.</p><div class="grid g6" style="grid-template-columns:repeat(6,1fr);gap:7px;margin-bottom:18px">${values.map(v=>`<div class="tile" style="min-height:52px;font-size:1.25rem">${v}</div>`).join('')}</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">${choices.map(v=>`<button class="btn ghostChoice" data-v="${v}" style="min-height:50px;padding:8px">${v}</button>`).join('')}</div></div>`;
+          area.onclick=e=>{
+            const b=e.target.closest('.ghostChoice');
+            if(!b || S.over) return;
+            const answer=+b.dataset.v;
+            finish(answer===ghost, answer===ghost ? '¡Has encontrado el número fantasma!' : '¡Ese no era el número diferente!');
           };
           return;
         }
@@ -131,7 +117,6 @@
         return originalMount(id, area);
       };
 
-      // SUBIMOS LA MÚSICA Y LOS EFECTOS EN TODO EL JUEGO.
       const loudTone = window.tone;
       const loudToneNote = window.toneNote;
       window.tone = function(type){
