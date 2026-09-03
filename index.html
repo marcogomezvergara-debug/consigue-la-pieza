@@ -13,14 +13,21 @@
   </head>
   <body>
     <main id="app" aria-live="polite"></main>
-    <script src="game.js?v=20260903-3"></script>
+    <script src="game.js?v=20260903-4"></script>
     <script>
-      // El juego "Rebelde emoji" siempre debe tener exactamente 3 segundos.
-      // Además, el parámetro ?v= fuerza a GitHub Pages a cargar la versión nueva.
+      // El pato se mueve casi instantáneamente después de cada toque.
       const originalStart = window.start;
       window.start = function(){
-        if(window.S && S.g && S.g.id === 16) S.g.time = 3;
-        originalStart();
+        const nativeSetInterval = window.setInterval;
+        window.setInterval = function(fn, ms, ...args){
+          return nativeSetInterval(fn, ms === 850 ? 120 : ms, ...args);
+        };
+        try {
+          if(window.S && S.g && S.g.id === 16) S.g.time = 3;
+          originalStart();
+        } finally {
+          window.setInterval = nativeSetInterval;
+        }
       };
 
       // Cuenta atrás independiente del temporizador del minijuego.
