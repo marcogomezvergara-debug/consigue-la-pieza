@@ -13,7 +13,7 @@
   </head>
   <body>
     <main id="app" aria-live="polite"></main>
-    <script src="game.js?v=20260903-4"></script>
+    <script src="game.js?v=20260903-5"></script>
     <script>
       // El pato se mueve casi instantáneamente después de cada toque.
       const originalStart = window.start;
@@ -50,6 +50,97 @@
           }
         };
         step();
+      };
+
+      // ORDEN DEL 1 AL 8: números desordenados, hay que pulsarlos en orden.
+      const originalMount = window.mount;
+      window.mount = function(id, area){
+        if(id === 7){
+          const nums = [1,2,3,4,5,6,7,8].sort(()=>Math.random()-.5);
+          let next = 1;
+          area.innerHTML = `<div style="width:100%"><p class="k">PULSA DEL 1 AL 8</p><div class="seq">${nums.map(n=>`<button data-n="${n}" style="font-weight:900">${n}</button>`).join('')}</div></div>`;
+          area.onclick = e => {
+            const b = e.target.closest('button');
+            if(!b || S.over) return;
+            const n = +b.dataset.n;
+            if(n !== next){
+              b.style.background='#ef5264';
+              b.style.color='#fff';
+              tone('lose');
+              return finish(false,'¡Te has equivocado de número!');
+            }
+            b.style.background='#3bc68c';
+            b.style.color='#fff';
+            b.disabled=true;
+            tone('good');
+            next++;
+            if(next===9) finish(true,'¡Has hecho el 1 al 8 perfecto!');
+          };
+          return;
+        }
+
+        // MEMORIA MUSICAL: 9 cubos. La máquina enseña la secuencia
+        // iluminando cada cubo y haciendo sonar una nota distinta.
+        if(id === 13){
+          const notes = [261.63,293.66,329.63,349.23,392,440,493.88,523.25,587.33];
+          const seq = Array.from({length:6},()=>Math.floor(Math.random()*9));
+          let showing = true;
+          let playPos = 0;
+          let answerPos = 0;
+
+          area.innerHTML = `<div style="width:100%"><p class="k">MEMORIA MUSICAL</p><p id="memoryHint">Mira y escucha la secuencia.</p><div class="seq">${Array.from({length:9},(_,i)=>`<button data-i="${i}"></button>`).join('')}</div></div>`;
+
+          const showNext = () => {
+            if(S.over) return;
+            if(playPos >= seq.length){
+              showing=false;
+              $('#memoryHint').textContent='¡Ahora repítela en el mismo orden!';
+              return;
+            }
+            const i=seq[playPos++];
+            const b=area.querySelector(`button[data-i="${i}"]`);
+            if(!b) return;
+            b.classList.add('flash');
+            toneNote(notes[i]);
+            setTimeout(()=>b.classList.remove('flash'),420);
+            setTimeout(showNext,650);
+          };
+          showNext();
+
+          area.onclick=e=>{
+            if(showing || S.over) return;
+            const b=e.target.closest('button');
+            if(!b) return;
+            const i=+b.dataset.i;
+            if(i!==seq[answerPos]){
+              b.style.background='#ef5264';
+              b.style.color='#fff';
+              tone('lose');
+              return finish(false,'¡Secuencia incorrecta!');
+            }
+            b.style.background='#3bc68c';
+            b.style.color='#fff';
+            b.disabled=true;
+            toneNote(notes[i]);
+            answerPos++;
+            if(answerPos===seq.length) finish(true,'¡Memoria musical perfecta!');
+          };
+          return;
+        }
+
+        return originalMount(id, area);
+      };
+
+      // SUBIMOS LA MÚSICA Y LOS EFECTOS EN TODO EL JUEGO.
+      const loudTone = window.tone;
+      const loudToneNote = window.toneNote;
+      window.tone = function(type){
+        loudTone(type);
+        setTimeout(()=>{ if(!S.over || type==='win' || type==='lose') loudTone(type); }, 8);
+      };
+      window.toneNote = function(freq){
+        loudToneNote(freq);
+        setTimeout(()=>{ if(!S.over) loudToneNote(freq); }, 8);
       };
     </script>
   </body>
