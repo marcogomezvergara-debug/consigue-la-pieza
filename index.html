@@ -7,7 +7,7 @@
     <meta name="description" content="Consigue la pieza: supera tres minijuegos seguidos." />
     <title>Consigue la pieza · Minijuego de mesa</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -24,6 +24,7 @@
         try {
           if(window.S && S.g && S.g.id === 16) S.g.time = 3;
           if(window.S && S.g && S.g.id === 14) S.g.time = 13;
+          if(window.S && S.g && S.g.id === 8) S.g.time = 11;
           originalStart();
         } finally {
           window.setInterval = nativeSetInterval;
@@ -38,15 +39,8 @@
         const step = () => {
           const c = document.querySelector('#count');
           if(!c) return;
-          if(n > 0){
-            c.textContent = n--;
-            tone('tick');
-            setTimeout(step, 600);
-          } else {
-            c.textContent = '¡YA!';
-            tone('good');
-            setTimeout(window.start, 400);
-          }
+          if(n > 0){ c.textContent = n--; tone('tick'); setTimeout(step, 600); }
+          else { c.textContent = '¡YA!'; tone('good'); setTimeout(window.start, 400); }
         };
         step();
       };
@@ -58,13 +52,11 @@
           let next = 1;
           area.innerHTML = `<div style="width:100%"><p class="k">PULSA DEL 1 AL 8</p><div class="seq">${nums.map(n=>`<button data-n="${n}" style="font-weight:900">${n}</button>`).join('')}</div></div>`;
           area.onclick = e => {
-            const b = e.target.closest('button');
-            if(!b || S.over) return;
+            const b = e.target.closest('button'); if(!b || S.over) return;
             const n = +b.dataset.n;
             if(n !== next){ b.style.background='#ef5264'; b.style.color='#fff'; tone('lose'); return finish(false,'¡Te has equivocado de número!'); }
             b.style.background='#3bc68c'; b.style.color='#fff'; b.disabled=true; tone('good');
-            next++;
-            if(next===9) finish(true,'¡Has hecho el 1 al 8 perfecto!');
+            if(++next===9) finish(true,'¡Has hecho el 1 al 8 perfecto!');
           };
           return;
         }
@@ -72,44 +64,36 @@
         if(id === 13){
           const notes = [261.63,293.66,329.63,349.23,392,440,493.88,523.25,587.33];
           const seq = Array.from({length:6},()=>Math.floor(Math.random()*9));
-          let showing = true, playPos = 0, answerPos = 0;
+          let showing=true, playPos=0, answerPos=0;
           area.innerHTML = `<div style="width:100%"><p class="k">MEMORIA MUSICAL</p><p id="memoryHint">Mira y escucha la secuencia.</p><div class="seq">${Array.from({length:9},(_,i)=>`<button data-i="${i}"></button>`).join('')}</div></div>`;
-          const showNext = () => {
-            if(S.over) return;
-            if(playPos >= seq.length){ showing=false; $('#memoryHint').textContent='¡Ahora repítela en el mismo orden!'; return; }
-            const i=seq[playPos++], b=area.querySelector(`button[data-i="${i}"]`);
-            if(!b) return;
-            b.classList.add('flash'); toneNote(notes[i]);
-            setTimeout(()=>b.classList.remove('flash'),420);
-            setTimeout(showNext,650);
+          const showNext=()=>{
+            if(S.over)return;
+            if(playPos>=seq.length){ showing=false; $('#memoryHint').textContent='¡Ahora repítela en el mismo orden!'; return; }
+            const i=seq[playPos++],b=area.querySelector(`button[data-i="${i}"]`); if(!b)return;
+            b.classList.add('flash'); toneNote(notes[i]); setTimeout(()=>b.classList.remove('flash'),420); setTimeout(showNext,650);
           };
           showNext();
           area.onclick=e=>{
-            if(showing || S.over) return;
-            const b=e.target.closest('button'); if(!b) return;
+            if(showing||S.over)return;
+            const b=e.target.closest('button'); if(!b)return;
             const i=+b.dataset.i;
             if(i!==seq[answerPos]){ b.style.background='#ef5264'; b.style.color='#fff'; tone('lose'); return finish(false,'¡Secuencia incorrecta!'); }
             b.style.background='#3bc68c'; b.style.color='#fff'; b.disabled=true; toneNote(notes[i]);
-            answerPos++;
-            if(answerPos===seq.length) finish(true,'¡Secuencia musical perfecta!');
+            if(++answerPos===seq.length)finish(true,'¡Secuencia musical perfecta!');
           };
           return;
         }
 
-        // NÚMERO FANTASMA: encuentra el número que aparece una sola vez.
+        // Número fantasma: más tiempo y selección con botones, sin escribir.
         if(id === 14){
-          const normal = Math.floor(Math.random()*9)+1;
-          let ghost = Math.floor(Math.random()*9)+1;
-          while(ghost===normal) ghost=Math.floor(Math.random()*9)+1;
-          const total=36, pos=Math.floor(Math.random()*total);
-          const values=Array.from({length:total},(_,i)=>i===pos?ghost:normal);
-          const choices=[1,2,3,4,5,6,7,8,9];
-          area.innerHTML = `<div style="width:100%"><p class="k">ENCUENTRA EL NÚMERO FANTASMA</p><p>Hay un número diferente. Tócalo abajo.</p><div class="grid g6" style="grid-template-columns:repeat(6,1fr);gap:7px;margin-bottom:18px">${values.map(v=>`<div class="tile" style="min-height:52px;font-size:1.25rem">${v}</div>`).join('')}</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">${choices.map(v=>`<button class="btn ghostChoice" data-v="${v}" style="min-height:50px;padding:8px">${v}</button>`).join('')}</div></div>`;
+          const ghost = Math.floor(Math.random()*9)+1;
+          const nums = [1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-.5);
+          area.innerHTML = `<div style="width:100%"><p class="k">NÚMERO FANTASMA</p><div class="big" style="font-size:clamp(3.5rem,16vw,5rem);margin-bottom:18px">${ghost}</div><p>Encuentra este número entre los que aparecen abajo.</p><div class="seq">${nums.map(n=>`<button data-n="${n}" style="font-weight:900">${n}</button>`).join('')}</div></div>`;
           area.onclick=e=>{
-            const b=e.target.closest('.ghostChoice');
-            if(!b || S.over) return;
-            const answer=+b.dataset.v;
-            finish(answer===ghost, answer===ghost ? '¡Has encontrado el número fantasma!' : '¡Ese no era el número diferente!');
+            const b=e.target.closest('button'); if(!b||S.over)return;
+            const n=+b.dataset.n;
+            if(n===ghost){ b.style.background='#3bc68c'; b.style.color='#fff'; tone('good'); finish(true,'¡Encontraste el número fantasma!'); }
+            else { b.style.background='#ef5264'; b.style.color='#fff'; tone('lose'); finish(false,'¡Ese no era el número fantasma!'); }
           };
           return;
         }
@@ -117,16 +101,9 @@
         return originalMount(id, area);
       };
 
-      const loudTone = window.tone;
-      const loudToneNote = window.toneNote;
-      window.tone = function(type){
-        loudTone(type);
-        setTimeout(()=>{ if(!S.over || type==='win' || type==='lose') loudTone(type); }, 8);
-      };
-      window.toneNote = function(freq){
-        loudToneNote(freq);
-        setTimeout(()=>{ if(!S.over) loudToneNote(freq); }, 8);
-      };
+      const loudTone=window.tone, loudToneNote=window.toneNote;
+      window.tone=function(type){ loudTone(type); setTimeout(()=>{if(!S.over||type==='win'||type==='lose')loudTone(type)},8); };
+      window.toneNote=function(freq){ loudToneNote(freq); setTimeout(()=>{if(!S.over)loudToneNote(freq)},8); };
     </script>
   </body>
 </html>
