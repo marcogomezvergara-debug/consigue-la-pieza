@@ -13,10 +13,17 @@
   </head>
   <body>
     <main id="app" aria-live="polite"></main>
-    <script src="game.js"></script>
+    <script src="game.js?v=20260903-3"></script>
     <script>
-      // Fix: the previous countdown marked S.over=true, while later()
-      // refuses to run callbacks when S.over is true. That made it stop at 3.
+      // El juego "Rebelde emoji" siempre debe tener exactamente 3 segundos.
+      // Además, el parámetro ?v= fuerza a GitHub Pages a cargar la versión nueva.
+      const originalStart = window.start;
+      window.start = function(){
+        if(window.S && S.g && S.g.id === 16) S.g.time = 3;
+        originalStart();
+      };
+
+      // Cuenta atrás independiente del temporizador del minijuego.
       window.countdown = function(){
         stop();
         S.over = true;
@@ -32,7 +39,7 @@
           } else {
             c.textContent = '¡YA!';
             tone('good');
-            setTimeout(start, 400);
+            setTimeout(window.start, 400);
           }
         };
         step();
