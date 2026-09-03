@@ -14,5 +14,29 @@
   <body>
     <main id="app" aria-live="polite"></main>
     <script src="game.js"></script>
+    <script>
+      // Fix: the previous countdown marked S.over=true, while later()
+      // refuses to run callbacks when S.over is true. That made it stop at 3.
+      window.countdown = function(){
+        stop();
+        S.over = true;
+        let n = 3;
+        app.innerHTML = `<section class="rt" style="background:#201a4c;color:#fff"><div id="count" style="font:800 8rem 'Baloo 2';color:#ffce4a">3</div><p>Prepárate…</p></section>`;
+        const step = () => {
+          const c = document.querySelector('#count');
+          if(!c) return;
+          if(n > 0){
+            c.textContent = n--;
+            tone('tick');
+            setTimeout(step, 600);
+          } else {
+            c.textContent = '¡YA!';
+            tone('good');
+            setTimeout(start, 400);
+          }
+        };
+        step();
+      };
+    </script>
   </body>
 </html>
